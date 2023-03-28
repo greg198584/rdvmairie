@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer');
 (async () => {
     const browser = await puppeteer.launch({ headless: false });
     const page = await browser.newPage();
-    await page.goto('https://formulaires.services.tours.fr/etat-civil-pieces-d-identite/rendez-vous-pour-un-passeport-ou-une-carte-nationale-d-identite/');
+    await page.goto('');
 
     // Cliquez sur le bouton suivant sur la première page
     await page.click('button.form-next');
