@@ -1,4 +1,7 @@
 const puppeteer = require('puppeteer');
+const { parse, format } = require('date-fns');
+const { utcToZonedTime } = require('date-fns-tz');
+const frLocale = require('date-fns/locale/fr');
 
 (async () => {
     const browser = await puppeteer.launch({ headless: false });
@@ -47,23 +50,32 @@ const puppeteer = require('puppeteer');
         let firstDate = null;
         let slotFound = false;
 
-        for (const [index, dateElement] of dateElements.entries()) {
-            const dateText = await dateElement.evaluate(el => el.textContent);
-            const timeText = await timeElements[index].evaluate(el => el.textContent);
-            const date = new Date(dateText);
-            const currentDate = new Date();
 
-            if (date <= currentDate) {
+        for (const [index, dateElement] of dateElements.entries()) {
+            let dateText = await dateElement.evaluate(el => el.textContent);
+            const timeText = await timeElements[index].evaluate(el => el.textContent);
+
+            // Insérer un espace entre le jour de la semaine et le jour du mois
+            dateText = dateText.replace(/(\D)(\d)/, "$1 $2");
+
+            // Utiliser date-fns pour analyser la date
+            const date = parse(dateText, "EEEE d MMMM yyyy HH:mm", new Date(), { locale: frLocale });
+
+            // Convertir la date en heure UTC
+            const currentDate = new Date();
+            const zonedDate = utcToZonedTime(date, "UTC");
+
+            // console.log("Current date: ", currentDate);
+            if (zonedDate <= currentDate) {
                 continue;
             }
 
             if (!firstDate) {
-                firstDate = dateText + ' ' + timeText;
+                firstDate = zonedDate;
             }
-
-            const weekDifference = (date - currentDate) / (1000 * 60 * 60 * 24 * 7);
+            const weekDifference = (zonedDate - currentDate) / (1000 * 60 * 60 * 24 * 7);
             if (weekDifference >= 0 && weekDifference < 2) {
-                console.log('Créneau disponible dans les 2 semaines :', dateText + ' ' + timeText);
+                console.log('Créneau disponible dans les 2 semaines :', format(zonedDate, "EEEE d MMMM yyyy HH:mm", { locale: frLocale }));
                 await timeElements[index].click();
                 await page.waitForSelector('button[name="submit"][value="Valider"]');
                 await page.click('button[name="submit"][value="Valider"]');
@@ -71,6 +83,9 @@ const puppeteer = require('puppeteer');
                 break;
             }
         }
+
+
+
 
         if (slotFound) {
             break;
